@@ -1,30 +1,45 @@
 package com.ypc.blefence;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Fragment;
+import android.app.FragmentManager;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.ypc.blefence.ble.BleDevicesAdapter;
 import com.ypc.blefence.ble.BleDevicesScanner;
 import com.ypc.blefence.ble.BleUtils;
+import com.ypc.blefence.dialog.AddDeviceDialog;
 import com.ypc.blefence.dialog.EnableBluetoothDialog;
 import com.ypc.blefence.dialog.ErrorDialog;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 
 public class DeviceScanActivity extends ListActivity implements ErrorDialog.ErrorDialogListener, EnableBluetoothDialog.EnableBluetoothDialogListener {
 
 	private static final int REQUEST_ENABLE_BT = 1;
+	private static final int REQUEST_ADD_DEVICE = 2;
 	private static final long SCAN_PERIOD = 500;
+	private static final long TIME_OUT=2500;
 	
 	private BluetoothAdapter bluetoothAdapter;
 	private BleDevicesScanner scanner;
@@ -34,7 +49,8 @@ public class DeviceScanActivity extends ListActivity implements ErrorDialog.Erro
 		@Override
 		public void run() {
 			bleDevicesListAdapter.removeExpiredDevice();
-			clearHandler.postDelayed(this,10000);
+			clearHandler.postDelayed(this,TIME_OUT);
+			bleDevicesListAdapter.notifyDataSetChanged();
 		}
 	};
 	
@@ -62,12 +78,12 @@ public class DeviceScanActivity extends ListActivity implements ErrorDialog.Erro
 		scanner = new BleDevicesScanner(bluetoothAdapter, new BluetoothAdapter.LeScanCallback() {
 			@Override
 			public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
-				bleDevicesListAdapter.addDevice(device, rssi);
-				bleDevicesListAdapter.notifyDataSetChanged();
+					bleDevicesListAdapter.addDevice(device, rssi);
+					bleDevicesListAdapter.notifyDataSetChanged();
 			}
 		});
 		scanner.setScanPeriod(SCAN_PERIOD);
-		clearHandler.postDelayed(mRunnable,10000);
+
 	}
 	
 	@Override
@@ -85,6 +101,7 @@ public class DeviceScanActivity extends ListActivity implements ErrorDialog.Erro
 			return;
 		}
 		init();
+		clearHandler.postDelayed(mRunnable,TIME_OUT);
 	}
 	
 	@Override
@@ -125,6 +142,23 @@ public class DeviceScanActivity extends ListActivity implements ErrorDialog.Erro
                 scanner.stop();
             invalidateOptionsMenu();
             break;
+			case R.id.menu_add:
+					/*FragmentManager manager=getFragmentManager();
+					AddDeviceDialog dialog=new AddDeviceDialog();
+					dialog.show(manager,AddDeviceDialog.TAG);*/
+				AlertDialog.Builder builder=new AlertDialog.Builder(this);
+				View v= LayoutInflater.from(this).inflate(R.layout.fragment_add_device_dialog,null);
+				builder.setView(v);
+				final EditText editText=(EditText)v.findViewById(R.id.device__mac_address);
+				builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						add_MACaddress(editText.getText().toString());
+					}
+				});
+				builder.setNegativeButton(android.R.string.no,null);
+				builder.show();
+
         }
         return true;
 	}
@@ -181,5 +215,7 @@ public class DeviceScanActivity extends ListActivity implements ErrorDialog.Erro
 	public void onDismiss(ErrorDialog f) {
 		finish();
 	}
-	
+	public void add_MACaddress(String mac){
+		bleDevicesListAdapter.add_validAddress(mac);
+	}
 }

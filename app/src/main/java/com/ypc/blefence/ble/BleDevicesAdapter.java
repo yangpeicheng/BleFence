@@ -10,31 +10,49 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import com.ypc.blefence.R;
+import com.ypc.blefence.ValidAddressPref;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 /** Adapter for holding devices found through scanning.
  *  Created by steven on 9/5/13.
  */
 public class BleDevicesAdapter extends BaseAdapter {
+    private Context mContext;
+
     private final LayoutInflater inflater;
 
     private final ArrayList<BluetoothDevice> leDevices;
     private final HashMap<BluetoothDevice, Integer> rssiMap = new HashMap<BluetoothDevice, Integer>();
     private final HashMap<BluetoothDevice,Long> timeMap=new HashMap<>();
 
+    private Set<String> validAddress;
+
     public BleDevicesAdapter(Context context) {
+        mContext=context;
+
         leDevices = new ArrayList<BluetoothDevice>();
         inflater = LayoutInflater.from(context);
+        if(ValidAddressPref.getStoredQuery(context)!=null)
+            validAddress= new HashSet<>(ValidAddressPref.getStoredQuery(context));
+        else
+            validAddress=new HashSet<>();
+        for(String s:validAddress){
+            Log.i("address",s);
+        }
     }
 
     public void addDevice(BluetoothDevice device, int rssi) {
+        if(validAddress.contains(device.getAddress())==false)
+            return;
         if (!leDevices.contains(device)) {
             leDevices.add(device);
         }
@@ -93,7 +111,6 @@ public class BleDevicesAdapter extends BaseAdapter {
     }
 
     public void removeExpiredDevice(){
-        Log.i("adapter","remove");
         long current=System.currentTimeMillis();
         List<BluetoothDevice> expiredList=new LinkedList<>();
         Iterator<Map.Entry<BluetoothDevice, Long>> entries=timeMap.entrySet().iterator();
@@ -114,5 +131,11 @@ public class BleDevicesAdapter extends BaseAdapter {
         TextView deviceName;
         TextView deviceAddress;
         TextView deviceRssi;
+    }
+    public void add_validAddress(String mac){
+        validAddress.add(mac);
+
+        ValidAddressPref.setStoredQury(mContext,validAddress);
+
     }
 }

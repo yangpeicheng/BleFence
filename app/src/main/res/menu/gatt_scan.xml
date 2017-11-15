@@ -20,4 +20,7 @@
     <item android:id="@+id/menu_stop"
           android:title="@string/menu_stop"
           android:orderInCategory="101"/>
+    <item android:id="@+id/menu_add"
+        android:title="Add"
+          android:orderInCategory="102"/>
 </menu>
